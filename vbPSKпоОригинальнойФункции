@@ -1,0 +1,61 @@
+Function ДелитсяНа(ByVal y As Integer, ByVal m As Integer) As Integer
+  ДелитсяНа = Int(y / m) - Int((y - 1) / m)
+End Function
+
+Function ПродолжительностьГода(ByVal y As Integer) As Integer
+  ПродолжительностьГода = 365 + ДелитсяНа(y, 4) - ДелитсяНа(y, 100) + ДелитсяНа(y, 400)
+End Function
+
+Function ДатаВГодах(ByVal d As Date) As Double
+  y = Year(d)
+  t = ПродолжительностьГода(y)
+  m = Month(d)
+  ДатаВГодах = y - 2000 + (Day(d) + Int(30.56 * m) - 30 - Int(0.1 * m + 0.7) * (367 - t)) / t
+End Function
+
+Function ПСК(Значения As Range, Даты As Range, Optional Предп As Double = 0) As Variant
+'Функция воспринимает как даты, выраженные в годах,
+'так и даты excel, причем даты, выраженные в годах от 2000 года до 2366
+'года воспринимаются автоматически.
+'Даты 1900-го года воспринимаются, как даты, выраженные в годах
+  If Значения.Count <> Даты.Count Then
+    ПСК = "#РАЗМЕРНОСТИ ЗНАЧЕНИЙ И ДАТ НЕ СХОДЯТСЯ"
+  ElseIf Значения.Count = 1 Then
+    ПСК = "#НЕДОСТАТОЧНО ЗНАЧЕНИЙ"
+  Else
+    ПСК = Предп
+    ПСК0 = ПСК + 0.00001
+    j = 1
+    Dim ДатыВГодах() As Double
+    ReDim ДатыВГодах(Даты.Count)
+    If Даты(1) > 366 Then
+      For i = 1 To Даты.Count
+        ДатыВГодах(i) = ДатаВГодах(Даты(i))
+      Next
+    Else
+      For i = 1 To Даты.Count
+        ДатыВГодах(i) = Даты(i)
+      Next
+    End If
+    While Abs(ПСК0 - ПСК) >= 0.000000000000001 And j < 100
+      f = Значения(1)
+      diff = 0
+      t = 1
+      For i = 2 To Значения.Count
+        t = t * (1 + ПСК * (ДатыВГодах(i) - ДатыВГодах(i - 1)))
+        f = f + Значения(i) / t
+        df = 0
+        For k = 2 To i
+          df = df + (ДатыВГодах(k) - ДатыВГодах(k - 1)) / (1 + ПСК * (ДатыВГодах(k) - ДатыВГодах(k - 1)))
+        Next
+        diff = diff - Значения(i) * df / t
+      Next
+      ПСК0 = ПСК
+      ПСК = ПСК - f / diff
+      j = j + 1
+    Wend
+    If j = 100 Then
+      ПСК = "#РЯД НЕ СХОДИТСЯ:" & ПСК & ";" & ПСК0
+    End If
+  End If
+End Function
